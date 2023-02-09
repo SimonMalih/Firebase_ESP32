@@ -11,6 +11,9 @@
 #include "Arduino.h"
 #include "Device.h"
 #include "Formatter.h"
+#include "GlobalSettings.h"
+#include "CustomAlarm.h"
+
 #include "addons/RTDBHelper.h"
 #include "addons/TokenHelper.h"
 
@@ -87,11 +90,11 @@ class Database {
         content.set(path, String(device.getValue()));
 
         if (Firebase.Firestore.patchDocument(&fbdo, PROJECT_ID, "", documentPath.c_str(), content.raw(), "value")) {
-            //Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+            // Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
             return;
         } else if (Firebase.Firestore.createDocument(&fbdo, PROJECT_ID, "", documentPath.c_str(), content.raw())) {
             Serial.printf("Successfully created firebase database document\n");
-            //Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+            // Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
             return;
         } else {
             Serial.println(fbdo.errorReason());
@@ -114,10 +117,52 @@ class Database {
         }
 
         if (Firebase.Firestore.getDocument(&fbdo, PROJECT_ID, "", documentPath.c_str(), "")) {
-            // Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+            //Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
             string type = device.getDataType();
             int val = Formatter::filterInt(fbdo.payload().c_str(), device.getDataType());
             device.setValue(val);
+        } else {
+            Serial.println(fbdo.errorReason());
+        }
+    }
+
+    void readSettings(GlobalSettings &settings) {
+        if (!isReady()) {
+            return;
+        }
+
+        string documentPath = "CurrentUser/Settings";
+        FirebaseJson content;
+        string path = "fields/value/string";
+        content.set(path, "");
+        if (Firebase.Firestore.createDocument(&fbdo, PROJECT_ID, "", documentPath.c_str(), content.raw())) {
+            Serial.println("Read operation postponed to create document!");
+            return;
+        }
+
+        if (Firebase.Firestore.getDocument(&fbdo, PROJECT_ID, "", documentPath.c_str(), "")) {
+            settings.updateSettings(Formatter::filterString(fbdo.payload().c_str(), "stringValue"));
+            settings.printSettings();
+        } else {
+            Serial.println(fbdo.errorReason());
+        }
+    }
+
+    void writeAlarm(CustomAlarm alarm) {
+        if (!isReady()) {
+            return;
+        }
+
+        string documentPath = "CurrentUser/Auth";
+        FirebaseJson content;
+        string path = "fields/value/integerValue";
+        content.set(path, (alarm.auth ? "1" : "0"));
+
+        if (Firebase.Firestore.patchDocument(&fbdo, PROJECT_ID, "", documentPath.c_str(), content.raw(), "value")) {
+            return;
+        } else if (Firebase.Firestore.createDocument(&fbdo, PROJECT_ID, "", documentPath.c_str(), content.raw())) {
+            Serial.printf("Successfully created firebase database document\n");
+            return;
         } else {
             Serial.println(fbdo.errorReason());
         }

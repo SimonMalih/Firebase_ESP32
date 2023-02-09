@@ -3,5 +3,7 @@
 
 #include "Database.h"
 #include "Formatter.h"
+#include "GlobalSettings.h"
+#include "CustomAlarm.h"
 
 #endif
