@@ -167,6 +167,24 @@ class Database {
             Serial.println(fbdo.errorReason());
         }
     }
+    
+    void write(int value) {
+            string documentPath = "Sensor/Steps";
+            FirebaseJson content;
+            string path = "fields/value/integerValue"; // integerValue or stringValue
+            content.set(path, String(value));
+
+            if (Firebase.Firestore.patchDocument(&fbdo, PROJECT_ID, "", documentPath.c_str(), content.raw(), "value")) {
+                // Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+                return;
+            } else if (Firebase.Firestore.createDocument(&fbdo, PROJECT_ID, "", documentPath.c_str(), content.raw())) {
+                Serial.printf("Successfully created firebase database document\n");
+                // Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+                return;
+            } else {
+                Serial.println(fbdo.errorReason());
+            }
+        }
 };
 
 #endif
